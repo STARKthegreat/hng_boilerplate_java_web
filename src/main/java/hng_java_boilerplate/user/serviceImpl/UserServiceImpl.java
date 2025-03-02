@@ -12,13 +12,7 @@ import hng_java_boilerplate.plans.service.PlanService;
 import hng_java_boilerplate.user.dto.request.GetUserDto;
 import hng_java_boilerplate.user.dto.request.LoginDto;
 import hng_java_boilerplate.user.dto.request.SignupDto;
-import hng_java_boilerplate.user.dto.response.ApiResponse;
-import hng_java_boilerplate.user.dto.response.MembersResponse;
-import hng_java_boilerplate.user.dto.response.ResponseData;
-import hng_java_boilerplate.user.dto.response.UserResponse;
 import hng_java_boilerplate.user.entity.MagicLinkToken;
-import hng_java_boilerplate.user.dto.response.ResponseData;
-import hng_java_boilerplate.user.dto.response.UserResponse;
 import hng_java_boilerplate.user.dto.response.*;
 import hng_java_boilerplate.user.entity.PasswordResetToken;
 import hng_java_boilerplate.user.entity.User;
@@ -54,7 +48,6 @@ import static hng_java_boilerplate.util.PaginationUtils.getPaginatedUsers;
 import static hng_java_boilerplate.util.PaginationUtils.validatePageNumber;
 import java.util.*;
 
-
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserDetailsService, UserService {
@@ -69,7 +62,6 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PlanService planService;
     private final MagicLinkTokenRepository magicLinkTokenRepository;
-
 
     @Override
     public UserDetails loadUserByUsername(String username) throws BadRequestException {
@@ -106,39 +98,40 @@ public class UserServiceImpl implements UserDetailsService, UserService {
 
         UserResponse userResponse = getUserResponse(savedUser);
         ResponseData data = new ResponseData(userResponse);
-        return new ResponseEntity<>(new ApiResponse<>(HttpStatus.CREATED.value(), "Registration Successful!", token, data), HttpStatus.CREATED);
+        return new ResponseEntity<>(
+                new ApiResponse<>(HttpStatus.CREATED.value(), "Registration Successful!", token, data),
+                HttpStatus.CREATED);
     }
 
     @Override
     public ResponseEntity<ApiResponse<ResponseData>> loginUser(LoginDto loginDto) {
         UserDetails userDetails = loadUserByUsername(loginDto.getEmail());
         User user = (User) userDetails;
-        boolean isValidPassword =
-                passwordEncoder.matches(loginDto.getPassword(), userDetails.getPassword());
+        boolean isValidPassword = passwordEncoder.matches(loginDto.getPassword(), userDetails.getPassword());
         if (!isValidPassword) {
             throw new BadRequestException("Invalid email or password");
         }
         String token = jwtUtils.createJwt.apply(userDetails);
         UserResponse userResponse = getUserResponse(user);
         ResponseData data = new ResponseData(userResponse);
-        return new ResponseEntity<>(new ApiResponse<>(HttpStatus.OK.value(), "Login Successful!", token, data), HttpStatus.OK);
+        return new ResponseEntity<>(new ApiResponse<>(HttpStatus.OK.value(), "Login Successful!", token, data),
+                HttpStatus.OK);
     }
 
     @Override
     public void sendMagicLink(String email, HttpServletRequest request) {
         String token = UUID.randomUUID().toString();
-        if (userRepository.existsByEmail(email)){
+        if (userRepository.existsByEmail(email)) {
             magicLinkTokenRepository.save(new MagicLinkToken(userRepository.findByEmail(email).get(), token));
             emailService.sendMagicLink(email, request, token);
-        }
-        else {
+        } else {
             User user = saveMagicLinkUser(email);
             magicLinkTokenRepository.save(new MagicLinkToken(user, token));
             emailService.sendMagicLink(email, request, token);
         }
     }
 
-    private User saveMagicLinkUser(String email){
+    private User saveMagicLinkUser(String email) {
         String password = UUID.randomUUID().toString();
         User user = new User();
         user.setName("No name");
@@ -160,7 +153,6 @@ public class UserServiceImpl implements UserDetailsService, UserService {
         VerificationToken verificationToken = new VerificationToken(user, token);
         verificationTokenRepository.save(verificationToken);
     }
-
 
     @Override
     public ResponseEntity<String> verifyOtp(String email, String token, HttpServletRequest request) {
@@ -207,7 +199,7 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     private void createPasswordResetTokenForUser(User user, String token) {
         PasswordResetToken newlyCreatedPasswordResetToken = new PasswordResetToken(user, token);
         PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByUserId(user.getId());
-        if(passwordResetToken != null){
+        if (passwordResetToken != null) {
             passwordResetTokenRepository.delete(passwordResetToken);
         }
         passwordResetTokenRepository.save(newlyCreatedPasswordResetToken);
@@ -248,7 +240,8 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     }
 
     public User findUserByEmail(String username) {
-        return userRepository.findByEmail(username).orElseThrow(() -> new NotFoundException("User with email " + username + " not found"));
+        return userRepository.findByEmail(username)
+                .orElseThrow(() -> new NotFoundException("User with email " + username + " not found"));
     }
 
     // Convert User to GetUserDto
@@ -280,7 +273,7 @@ public class UserServiceImpl implements UserDetailsService, UserService {
         return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
     }
 
-    private Map<String, String> splitName(User user){
+    private Map<String, String> splitName(User user) {
         String[] nameParts = user.getName().split(" ", 2);
         String firstName = nameParts.length > 0 ? nameParts[0] : "";
         String lastName = nameParts.length > 1 ? nameParts[1] : "";
@@ -305,7 +298,7 @@ public class UserServiceImpl implements UserDetailsService, UserService {
         return userResponse;
     }
 
-    private void createDefaultOrganisation(User user){
+    private void createDefaultOrganisation(User user) {
         Organisation organisation = new Organisation();
         organisation.setName(splitName(user).get("firstName") + "'s Organisation");
         organisation.setOwner(user.getId());
@@ -369,27 +362,27 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     @Override
     public List<MembersResponse> getAllUsers(int page, Authentication authentication) {
         List<MembersResponse> users = new ArrayList<>();
-        User user  = (User) authentication.getPrincipal();
+        User user = (User) authentication.getPrincipal();
         if (user != null) {
             List<User> allUser = userRepository.findAll();
             validatePageNumber(page, allUser);
             Page<User> paginatedMembers = getPaginatedUsers(page, allUser);
             users = paginatedMembers.stream().map(member -> MembersResponse.builder()
                     .fullName(member.getName()).email(member.getEmail()).createdAt(member.getCreatedAt().toString())
-                   .build()).collect(Collectors.toList());
+                    .build()).collect(Collectors.toList());
         }
         return users;
     }
-
 
     @Transactional
     public Response<?> deleteUserByEmail(DeleteUserRequest request, Authentication authentication) {
         String email = request.getEmail();
         if (userRepository.existsByEmail(email)) {
             userRepository.deleteByEmail(email);
-            return Response.builder().status_code("success").message("The account has been successfully deleted.").build();
+            return Response.builder().status_code("success").message("The account has been successfully deleted.")
+                    .build();
         }
-        throw new NotFoundException("User not found with email: "  + email);
+        throw new NotFoundException("User not found with email: " + email);
 
     }
 
@@ -415,6 +408,12 @@ public class UserServiceImpl implements UserDetailsService, UserService {
             throw new NotFoundException("User not found with id: " + userId);
         }
 
+    }
+
+    @Override
+    public Response<?> updateUserRoleById(String userId, Authentication authentication, String orgId, String roleId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'updateUserRoleById'");
     }
 
 }

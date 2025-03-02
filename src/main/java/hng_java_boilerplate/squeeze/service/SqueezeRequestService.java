@@ -4,6 +4,8 @@ import hng_java_boilerplate.exception.ConflictException;
 import hng_java_boilerplate.squeeze.entity.SqueezeRequest;
 import hng_java_boilerplate.squeeze.repository.SqueezeRequestRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,9 +15,10 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor
 public class SqueezeRequestService {
 
+    @Autowired
     private final SqueezeRequestRepository repository;
 
-    public SqueezeRequest saveSqueezeRequest(SqueezeRequest squeezeRequest){
+    public SqueezeRequest saveSqueezeRequest(SqueezeRequest squeezeRequest) {
         if (repository.existsByEmail(squeezeRequest.getEmail())) {
             throw new ConflictException("Email address already exists");
         }
@@ -24,7 +27,8 @@ public class SqueezeRequestService {
 
     public SqueezeRequest updateSqueezeRequest(SqueezeRequest squeezeRequest) {
         SqueezeRequest existingRequest = repository.findByEmail(squeezeRequest.getEmail())
-                .orElseThrow(() -> new NoSuchElementException("No squeeze page record exists for the provided request body"));
+                .orElseThrow(() -> new NoSuchElementException(
+                        "No squeeze page record exists for the provided request body"));
 
         if (existingRequest.isUpdated()) {
             throw new IllegalStateException("The squeeze page record can only be updated once.");

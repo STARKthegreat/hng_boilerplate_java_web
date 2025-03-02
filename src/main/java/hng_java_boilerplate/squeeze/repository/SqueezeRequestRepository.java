@@ -8,5 +8,6 @@ import java.util.UUID;
 
 public interface SqueezeRequestRepository extends JpaRepository<SqueezeRequest, UUID> {
     boolean existsByEmail(String email);
+
     Optional<SqueezeRequest> findByEmail(String email);
 }
